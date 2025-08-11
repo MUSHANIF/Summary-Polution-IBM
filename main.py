@@ -1,15 +1,19 @@
 from openaq import OpenAQ
 import pandas as pd
 import dataclasses
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import matplotlib.pyplot as plt
 from langchain_community.llms import Replicate
 import os
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 # API keys nya
 openaq_api_key = os.getenv("OPENAQ_API_KEY")
 replicate_api_token = os.getenv("REPLICATE_API_TOKEN")
-os.environ["REPLICATE_API_TOKEN"] = replicate_api_token
+# os.getenv["REPLICATE_API_TOKEN"] = replicate_api_token
 
 api = OpenAQ(api_key=openaq_api_key)
 model_id = "ibm-granite/granite-3.2-8b-instruct"
@@ -66,18 +70,18 @@ try:
 
     pm25_sensors = list(dict.fromkeys(pm25_sensors)) 
     if not pm25_sensors:
-        raise Exception("Tidak ditemukan sensor PM2.5 di lokasi akarta.")
+        raise Exception("Tidak ditemukan sensor PM2.5 di lokasi jakarta.")
 
     #ambil 30 hari
-    end_date = datetime.utcnow()
+    end_date = datetime.now(timezone.utc)
     start_date = end_date - timedelta(days=30)
     all_measurements = []
 
     for sensor_id in pm25_sensors:
         meas = api.measurements.list(
             sensors_id=sensor_id,
-            datetime_from=start_date.isoformat() + "Z",
-            datetime_to=end_date.isoformat() + "Z",
+            datetime_from=start_date.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            datetime_to=end_date.strftime('%Y-%m-%dT%H:%M:%SZ'),
             limit=1000
         )
         
@@ -123,18 +127,6 @@ try:
 
     df_final = df_clean[['date_local', 'value', 'parameter_name', 'unit']].copy()
 
-    print(f"Mengambil {len(df_final)} baris data PM2.5 dari {len(pm25_sensors)} sensor (gabungan).")
-    display(df_final.head())
-
-    #disini visual
-    plt.figure(figsize=(12,5))
-    plt.plot(df_final['date_local'], df_final['value'], marker='o', linestyle='-', alpha=0.6)
-    plt.title('Tren PM2.5 di Jakarta (30 Hari Terakhir) — Gabungan Sensor')
-    plt.xlabel('Tanggal')
-    plt.ylabel(f"PM2.5 ({df_final['unit'].dropna().unique().tolist()[:3]})")
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
 
   
     summary_stats = df_final['value'].describe().to_dict()
@@ -150,11 +142,26 @@ try:
 
     
     try:
+    
+        print(f"Mengambil {len(df_final)} baris data PM2.5 dari {len(pm25_sensors)} sensor (gabungan).")
+        print(df_final.head())
+      
         insight = granite(prompt)
         print("=== Insight & Rekomendasi AI ===")
         print(insight)
+
+          #ambil visualisasi
+        plt.figure(figsize=(12,5))
+        plt.plot(df_final['date_local'], df_final['value'], marker='o', linestyle='-', alpha=0.6)
+        plt.title('Tren PM2.5 di Jakarta (30 Hari Terakhir) — Gabungan Sensor')
+        plt.xlabel('Tanggal')
+        plt.ylabel(f"PM2.5 ({df_final['unit'].dropna().unique().tolist()[:3]})")
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
+       
     except Exception as e:
-        print("⚠️ Insight AI gagal dijalankan:", e)
+        print("Insight AI gagal dijalankan:", e)
 
 except Exception as e:
-    print("❌ Terjadi error:", e)
+    print("Terjadi error:", e)
