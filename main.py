@@ -1,5 +1,4 @@
 from openaq import OpenAQ
-
 import pandas as pd
 import dataclasses
 from datetime import datetime, timedelta
@@ -7,9 +6,9 @@ import matplotlib.pyplot as plt
 from langchain_community.llms import Replicate
 import os
 
-# API keys (Colab userdata)
-openaq_api_key =  os.getenv('OPENAQ_API_KEY')
-replicate_api_token = os.getenv('REPLICATE_API_TOKEN')
+# API keys nya
+openaq_api_key = os.getenv("OPENAQ_API_KEY")
+replicate_api_token = os.getenv("REPLICATE_API_TOKEN")
 os.environ["REPLICATE_API_TOKEN"] = replicate_api_token
 
 api = OpenAQ(api_key=openaq_api_key)
@@ -19,21 +18,17 @@ granite = Replicate(model=model_id, replicate_api_token=replicate_api_token)
 def extract_local_date_from_period(period):
     if not period:
         return None
-    # period bisa berisi kunci berbeda: 'datetime_from', 'date', 'datetime'
     for key in ("datetime_from", "date", "datetime"):
         if key in period and period[key]:
-            # beberapa struktur: period[key] bisa dict {'local': '...'} atau string
+
             try:
                 if isinstance(period[key], dict) and 'local' in period[key]:
                     return period[key]['local']
-                # kadang period[key] sendiri sudah string (jarang)
                 if isinstance(period[key], str):
                     return period[key]
             except Exception:
                 continue
-    # ada juga kemungkinan kunci 'date' di level lain
     try:
-        # fallback: jika period punya 'date' yang berisi dict
         if 'date' in period and isinstance(period['date'], dict) and 'local' in period['date']:
             return period['date']['local']
     except Exception:
@@ -71,9 +66,9 @@ try:
 
     pm25_sensors = list(dict.fromkeys(pm25_sensors)) 
     if not pm25_sensors:
-        raise Exception("Tidak ditemukan sensor PM2.5 di lokasi jakarta.")
+        raise Exception("Tidak ditemukan sensor PM2.5 di lokasi akarta.")
 
-    #30 hari.
+    #ambil 30 hari
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=30)
     all_measurements = []
@@ -85,7 +80,7 @@ try:
             datetime_to=end_date.isoformat() + "Z",
             limit=1000
         )
-
+        
         chunk = [dataclasses.asdict(m) for m in meas.results] if getattr(meas, "results", None) else []
         if chunk:
             all_measurements.extend(chunk)
@@ -93,11 +88,13 @@ try:
     if not all_measurements:
         raise Exception("Tidak ada data PM2.5 untuk 30 hari terakhir dari semua sensor di Jakarta.")
 
-  
+    
     df_meas = pd.DataFrame(all_measurements)
 
+    
     df_meas['date_local_raw'] = df_meas['period'].apply(lambda p: extract_local_date_from_period(p))
     df_meas['date_local'] = pd.to_datetime(df_meas['date_local_raw'], errors='coerce')
+
 
     def safe_param_name(p):
         try:
@@ -151,12 +148,13 @@ try:
     4) Berikan rekomendasi singkat untuk pemerintah dan masyarakat.
     """
 
+    
     try:
         insight = granite(prompt)
         print("=== Insight & Rekomendasi AI ===")
         print(insight)
     except Exception as e:
-        print("Insight AI gabisa dijalankan:", e)
+        print("⚠️ Insight AI gagal dijalankan:", e)
 
 except Exception as e:
-    print("Terjadi error:", e)
+    print("❌ Terjadi error:", e)
