@@ -1,0 +1,5 @@
+openaq
+pandas
+matplotlib
+python-dotenv
+langchain-community
