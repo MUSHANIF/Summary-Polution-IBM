@@ -12,10 +12,9 @@ Analisis ini dibantu oleh **IBM Granite AI Model** melalui layanan **Replicate**
 
 - Sumber data: [OpenAQ API](https://docs.openaq.org/)
 - Endpoint yang digunakan:
-  - `/countries` → mendapatkan daftar negara
-  - `/locations` → mendapatkan daftar lokasi sensor
   - `/measurements` → mengambil data pengukuran PM2.5
-- Data khusus Indonesia, lokasi Jakarta, dan periode 30 hari terakhir.
+- Data diambil khusus untuk Indonesia (lokasi Jakarta) dan periode 30 hari terakhir.
+- Pengambilan dan pembersihan data dilakukan menggunakan Python.
 
 ---
 
